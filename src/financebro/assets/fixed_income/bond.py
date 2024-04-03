@@ -77,7 +77,7 @@ class Bond(FixedIncomeAsset):
         dsc = _math.day_diff(self.settlement_date, self.next_coupon_date)
         E = self.coupon_period_days
         frequency = self.YEAR_DAYS / self.coupon_period_days
-        redemption = 100 # standardized at 100, not self.face_value
+        redemption = 100 # standardized at 100, not 1000
         yld = ytm/100
         rate = self.annual_coupon_rate_percent/100
         N = self.num_coupons
@@ -88,8 +88,8 @@ class Bond(FixedIncomeAsset):
         for k in range(1, N+1):
             T2 += ( 100*rate/frequency ) / (1 + yld/frequency) ** (k-1+ dsc/E) #wtf
         T3 = 100*( rate/frequency ) * (A/E) # bitch ass non sense
-        price = T1 + T2 - T3
-        price = price*(self.face_value/100)
+        price_percent = T1 + T2 - T3 # in %
+        price = (price_percent/100)*self.face_value
         return price
     
     def compute_approx_price(self, ytm= None):

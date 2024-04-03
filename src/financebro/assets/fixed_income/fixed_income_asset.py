@@ -45,7 +45,6 @@ class FixedIncomeAsset:
         
         # Real price to face value
         self.price = price_percent/100 * face_value
-        self.face_value_percent = face_value/100
 
 
     def compute_return(self):
