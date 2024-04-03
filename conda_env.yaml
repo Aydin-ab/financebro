@@ -1,9 +1,6 @@
 name: financebro
-channels:
-  - defaults
 dependencies:
+  - pip=23.3.1
   - python=3.12
   - pip:
-    - numpy
-    - matplotlib
-    - tqdm
+    - -r requirements.txt
