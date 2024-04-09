@@ -3,8 +3,6 @@ from datetime import date, datetime, timedelta
 
 class FixedIncomeAsset:
     def __init__(self,
-                 cusip: str,
-                 isin: str,
                  price_percent: float, # in % of face value
                  ytm_percent: float,
                  annual_coupon_rate_percent: float, # in %
@@ -15,8 +13,6 @@ class FixedIncomeAsset:
                  date_convention: str= 'us_nasd_30_360' # 'us_nasd_30_360' or 'not_retarded'
                  ):
 
-        self.cusip = cusip
-        self.isin = isin
         self.price_percent = price_percent
         self.annual_coupon_rate_percent = annual_coupon_rate_percent
         self.coupon_period_days = coupon_period_days # in days

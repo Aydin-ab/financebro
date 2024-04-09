@@ -1,8 +1,9 @@
 from typing import Tuple
-import financebro.utils._math as _math
 from datetime import date
 
 from financebro.assets.fixed_income.fixed_income_asset import FixedIncomeAsset
+import financebro.utils._math as _math
+import financebro.utils._bond as _bond
 
 
 class Bond(FixedIncomeAsset):
@@ -24,7 +25,6 @@ class Bond(FixedIncomeAsset):
     """    
     def __init__(self,
                  cusip: str,
-                 isin: str,
                  price_percent: float, ytm_percent: float,
                  annual_coupon_rate_percent: float,
                  coupon_period_days: int,
@@ -34,11 +34,12 @@ class Bond(FixedIncomeAsset):
                  date_convention: str= 'us_nasd_30_360'
                  ):
 
-        super().__init__(cusip, isin, 
-                         price_percent, ytm_percent, 
+        super().__init__(price_percent, ytm_percent, 
                          annual_coupon_rate_percent, coupon_period_days, 
                          maturity_date, settlement_date, 
                          face_value, date_convention)
+        self.cusip = cusip
+        self.isin = _bond.get_isin_from_cusip(cusip, 'US')
         self.incomes, self.total_return = self.compute_return()
         self.apy = self.compute_apy()
 
@@ -196,7 +197,6 @@ class Bond(FixedIncomeAsset):
 class CallableBond(Bond):
     def __init__(self,
                  cusip,
-                 isin,
                  price_percent, ytm_percent,
                  annual_coupon_rate_percent,
                  coupon_period_days,
@@ -205,7 +205,7 @@ class CallableBond(Bond):
                  face_value= 1000,
                  date_convention= 'us_nasd_30_360'
                  ):
-        super().__init__(cusip, isin, 
+        super().__init__(cusip, 
                          price_percent, ytm_percent, 
                          annual_coupon_rate_percent, coupon_period_days, 
                          call_date, settlement_date,
