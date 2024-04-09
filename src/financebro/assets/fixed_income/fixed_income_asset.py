@@ -1,20 +1,18 @@
 import financebro.utils._math as _math
-from datetime import date
-
+from datetime import date, datetime, timedelta
 
 class FixedIncomeAsset:
     def __init__(self,
-                 cusip,
-                 isin,
-                 price_percent, # in % of face value
-                 annual_coupon_rate_percent, # in %
-                 coupon_period_days,
-                 next_coupon_date,
-                 maturity_date,
-                 ytm,
-                 settlement_date=date.today().strftime("%m-%d-%Y"),
-                 face_value= 100, # Let's assume the face value is 100 in the absence of any information
-                 date_convention= 'us_nasd_30_360' # 'us_nasd_30_360' or 'not_retarded'
+                 cusip: str,
+                 isin: str,
+                 price_percent: float, # in % of face value
+                 ytm_percent: float,
+                 annual_coupon_rate_percent: float, # in %
+                 coupon_period_days: int,
+                 maturity_date: str,
+                 settlement_date: str= date.today().strftime("%m-%d-%Y"),
+                 face_value: float= 100, # Let's assume the face value is 100 in the absence of any information
+                 date_convention: str= 'us_nasd_30_360' # 'us_nasd_30_360' or 'not_retarded'
                  ):
 
         self.cusip = cusip
@@ -22,9 +20,8 @@ class FixedIncomeAsset:
         self.price_percent = price_percent
         self.annual_coupon_rate_percent = annual_coupon_rate_percent
         self.coupon_period_days = coupon_period_days # in days
-        self.next_coupon_date = next_coupon_date
         self.maturity_date = maturity_date # Format 'YYYY-MM-DD'
-        self.ytm = ytm
+        self.ytm_percent = ytm_percent
         self.settlement_date = settlement_date
         self.face_value = face_value
         self.date_convention = date_convention
@@ -39,12 +36,21 @@ class FixedIncomeAsset:
         
         # Couponing
         self.annual_coupon_rate = self.annual_coupon_rate_percent/100
-        self.coupon_rate_percent = annual_coupon_rate_percent / (360/coupon_period_days)# in %
+        self.annual_coupon = self.annual_coupon_rate * face_value
+        self.num_coupons_per_year = (360/coupon_period_days) if date_convention == 'us_nasd_30_360' else (365/coupon_period_days)
+        self.coupon_rate_percent = annual_coupon_rate_percent / self.num_coupons_per_year# in %
         self.coupon_rate = self.coupon_rate_percent/100
-        self.num_coupons = 1 + _math.day_diff(next_coupon_date, maturity_date, date_convention= date_convention) // coupon_period_days
-        
+        self.coupon = self.coupon_rate * face_value
+        iter_date = maturity_date
+        self.coupon_dates = []
+        while datetime.strptime(iter_date, "%m-%d-%Y") >= datetime.strptime(settlement_date, "%m-%d-%Y"):
+            self.coupon_dates.insert(0, iter_date)
+            iter_date = _math.remove_days(iter_date, coupon_period_days, date_convention)
+        self.num_coupons = len(self.coupon_dates)
+
         # Real price to face value
         self.price = price_percent/100 * face_value
+        self.ytm = self.ytm_percent/100
 
 
     def compute_return(self):
