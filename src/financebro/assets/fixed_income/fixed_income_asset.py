@@ -9,7 +9,7 @@ class FixedIncomeAsset:
                  coupon_period_days: int,
                  maturity_date: str,
                  settlement_date: str= date.today().strftime("%m-%d-%Y"),
-                 face_value: float= 100, # Let's assume the face value is 100 in the absence of any information
+                 face_value: float= 1000, # Let's assume the face value is 1000 in the absence of any information
                  date_convention: str= 'us_nasd_30_360' # 'us_nasd_30_360' or 'not_retarded'
                  ):
 
@@ -47,6 +47,8 @@ class FixedIncomeAsset:
         # Real price to face value
         self.price = price_percent/100 * face_value
         self.ytm = self.ytm_percent/100
+        self.face_value_percent = 100 # by definition
+
 
 
     def compute_return(self):

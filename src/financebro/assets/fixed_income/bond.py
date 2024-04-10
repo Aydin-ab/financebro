@@ -44,7 +44,7 @@ class Bond(FixedIncomeAsset):
         self.apy = self.compute_apy()
 
 
-    def compute_return(self) -> Tuple[float, dict]:
+    def compute_return(self) -> Tuple[dict, float]:
         """
         Compute the total return of the bond and a dict of the incomes date and amount
 
@@ -123,75 +123,41 @@ class Bond(FixedIncomeAsset):
         approx_ytm = approx_ytm * 100
         return approx_ytm
     
-    def compute_price(self, ytm_percent: float= None) -> float:
+    def compute_price(self, ytm_percent: float= None, method: str= 'excel') -> float:
         """
         Compute the price of the bond in percentage of the face value
         From https://support.microsoft.com/en-us/office/price-function-3ea9deac-8dfa-436f-a7c8-17ea02c21b0a
 
         Args:
             ytm_percent (float, optional): Yield to Maturity of the bond in percentage. If None, it uses the ytm of the bond. Defaults to None.
-
+            method (str, optional): Method to use to compute the price. Can be 'excel' or 'textbook'. Defaults to 'excel'.
+            
         Returns:
             float: The price of the bond in percentage of the face value
         """
-        # Excel Price computation. WTF is this formula?!
-        # See their doc here for notation explanation
-        # https://support.microsoft.com/en-us/office/price-function-3ea9deac-8dfa-436f-a7c8-17ea02c21b0a
         if ytm_percent is None:
             ytm_percent = self.ytm_percent
         
-        # Excel Notation for the formula
-        N = self.num_coupons
-        E = self.coupon_period_days # number of days in the coupon period
-        frequency = self.YEAR_DAYS / self.coupon_period_days
-        redemption = 100 # standardized at 100, not 1000
-        yld = ytm_percent/100
-        rate = self.annual_coupon_rate_percent/100
-        next_coupon_date = self.coupon_dates[0]
-        if N > 1:
-            DSC = _math.day_diff(self.settlement_date, next_coupon_date) # number of days from settlement to next coupon date. DSC = DSR if N = 1
-            A = E - DSC # number of days from beginning of settlement coupon period to settlement date.
-            T1: float = redemption / ((1 + yld/frequency) ** (N-1+ DSC/E)) # redemption present value
-            T2: float = 0
-            for k in range(1, N+1):
-                T2 += ( 100*rate/frequency ) / (1 + yld/frequency) ** (k-1+ DSC/E) # sum of the present value of the coupons
-            T3 = 100*( rate/frequency ) * (A/E) # minus the interest owed to previous settler
-            price_percent = T1 + T2 - T3 # in %
-        elif N == 1 : # Only 1 coupon so self.maturity_date == self.next_coupon_date
-            # Technically DSR = DSC here but for the sake of readaiblity, I'll five 2 different definitions
-            DSR = _math.day_diff(self.settlement_date, self.maturity_date) # number of days from settlement to redemption date.
-            A = E - DSR # number of days from beginning of settlement coupon period to settlement date.
-            T1 = 100*(rate/frequency) + redemption
-            T2 = (yld/frequency)*(DSR/E)  + 1
-            T3 = 100*(rate/frequency)*A/E
-            price_percent: float = (T1/T2) - T3
+        if method == 'excel':
+            # Excel Notation for the formula
+            DSC = _math.day_diff(self.settlement_date, self.coupon_dates[0])
+            price_percent = _bond.compute_price_excel(ytm_percent, 
+                                                    self.annual_coupon_rate, 
+                                                    self.num_coupons, 
+                                                    self.num_coupons_per_year, 
+                                                    self.face_value_percent, 
+                                                    DSC, 
+                                                    self.coupon_period_days)        
+        elif method == 'textbook':
+            # Textbook Notation for the formula
+            days_to_maturity = _math.day_diff(self.settlement_date, self.maturity_date)
+            num_years = days_to_maturity // self.YEAR_DAYS
+            price_percent = _bond.compute_price_textbook(ytm_percent, 
+                                                        self.annual_coupon, 
+                                                        num_years, 
+                                                        self.face_value)
         
         return price_percent
-    
-    def compute_approx_price(self, ytm_percent: float= None) -> float:
-        """
-        Compute the approximate price of the bond in percentage of the face value
-        From https://www.omnicalculator.com/finance/bond-ytm
-
-        Args:
-            ytm_percent (float, optional): Yield to Maturity of the bond in percentage. If None, it uses the ytm of the bond. Defaults to None.
-
-        Returns:
-            float: An approximate price of the bond in percentage
-        """        
-        # To delete but this should be the true formula from the textbooks... ?!
-        # https://www.omnicalculator.com/finance/bond-ytm
-        ytm = self.ytm if ytm_percent is None else ytm_percent/100
-        annual_coupon_cash_flow = self.annual_coupon_rate * self.face_value
-        days_to_maturity = _math.day_diff(self.settlement_date, self.maturity_date)
-        num_years = days_to_maturity // self.YEAR_DAYS
-
-        cash_flows = [annual_coupon_cash_flow]*(num_years-1) + [self.face_value + annual_coupon_cash_flow]
-        price = 0.
-        for i, cf in enumerate(cash_flows):
-            price += cf / (1 + ytm)**(1+i)
-        return price
-    
 
 # TODO To simplify for now, consider worst case which is CallableBond are called on first day of call date
 class CallableBond(Bond):

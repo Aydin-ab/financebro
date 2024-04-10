@@ -4,7 +4,6 @@ from financebro.assets.fixed_income.bond import Bond
 print('\n')
 print(f"DATE CONVENTION: us_nasd_30_360")
 bond = Bond(cusip="123456789",
-            isin="US123456789",
             price_percent=96.478,
             ytm_percent=5.211,
             annual_coupon_rate_percent=3.950,
@@ -15,6 +14,6 @@ bond = Bond(cusip="123456789",
             date_convention="us_nasd_30_360")
 print(f"Return: {bond.total_return}")
 print(f"APY: {bond.apy}")
+print(f"Fidelity Price YTM 5%: {bond.compute_price(method='textbook')}")
 print(f"Fidelity Yield to Maturity 1000$: {bond.compute_ytm()}")
-print(f"Fidelity Price YTM 5%: {bond.compute_price()}")
 
