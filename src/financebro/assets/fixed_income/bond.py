@@ -29,7 +29,7 @@ class Bond(FixedIncomeAsset):
                  annual_coupon_rate_percent: float,
                  maturity_date: str,
                  coupon_period_days: int= None,
-                 settlement_date: str= date.today().strftime("%m-%d-%Y"),
+                 settlement_date: str= date.today().strftime("%m/%d/%Y"),
                  face_value: int= 1000,
                  date_convention: str= 'us_nasd_30_360'
                  ):
@@ -194,7 +194,7 @@ class Bond(FixedIncomeAsset):
                                                       self.face_value_percent, 
                                                       DSC, 
                                                       trial)
-            if round(price_percent, 3) == self.price_percent:
+            if abs(round(price_percent, 3) - self.price_percent) < 0.01:
                 found = True
                 break
         if found:

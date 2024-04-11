@@ -8,14 +8,14 @@ class FixedIncomeAsset:
                  ytm_percent: float,
                  annual_coupon_rate_percent: float, # in %
                  maturity_date: str,
-                 settlement_date: str= date.today().strftime("%m-%d-%Y"),
+                 settlement_date: str= date.today().strftime("%m/%d/%Y"),
                  face_value: float= 1000, # Let's assume the face value is 1000 in the absence of any information
                  date_convention: str= 'us_nasd_30_360' # 'us_nasd_30_360' or 'not_retarded'
                  ):
 
         self.price_percent = price_percent
         self.annual_coupon_rate_percent = annual_coupon_rate_percent
-        self.maturity_date = maturity_date # Format 'YYYY-MM-DD'
+        self.maturity_date = maturity_date # Format 'YYYY/MM/DD'
         self.ytm_percent = ytm_percent
         self.settlement_date = settlement_date
         self.face_value = face_value

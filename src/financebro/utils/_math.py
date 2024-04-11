@@ -9,8 +9,8 @@ def day_diff(start_time: str, end_time: str, date_convention: str= 'us_nasd_30_3
     Compute the difference in days between two dates
 
     Args:
-        start_time (str): Start date in format 'MM-DD-YYYY'
-        end_time (str): End date in format 'MM-DD-YYYY'
+        start_time (str): Start date in format 'MM/DD/YYYY'
+        end_time (str): End date in format 'MM/DD/YYYY'
         date_convention (str, optional): Calendar convention.  Can be 'us_nasd_30_360' | 'not_retarded'. Defaults to 'us_nasd_30_360'.
 
     Raises:
@@ -32,15 +32,15 @@ def day_diff_normal(start_time: str, end_time: str) -> int:
     Compute the difference in days between two dates using the normal calendar convention
 
     Args:
-        start_time (str): Start date in format 'MM-DD-YYYY'
-        end_time (str): End date in format 'MM-DD-YYYY'
+        start_time (str): Start date in format 'MM/DD/YYYY'
+        end_time (str): End date in format 'MM/DD/YYYY'
 
     Returns:
         int: Difference in days between the two dates
     """    
-    # Convert string of format MM-DD-YYYY to datetime object
-    start_time = datetime.datetime.strptime(start_time, "%m-%d-%Y")
-    end_time = datetime.datetime.strptime(end_time, "%m-%d-%Y")
+    # Convert string of format MM/DD/YYYY to datetime object
+    start_time = datetime.datetime.strptime(start_time, "%m/%d/%Y")
+    end_time = datetime.datetime.strptime(end_time, "%m/%d/%Y")
     diff = end_time - start_time
     days = diff.days
     return days
@@ -52,17 +52,17 @@ def day_diff_us_nasd_30_360(start_time: str, end_time: str, excel: bool= True) -
     The Excel function DAYS360 seems to forget the rule that the last day of February is the 30th day of February.
 
     Args:
-        start_time (str): Start date in format 'MM-DD-YYYY'
-        end_time (str): End date in format 'MM-DD-YYYY'
+        start_time (str): Start date in format 'MM/DD/YYYY'
+        end_time (str): End date in format 'MM/DD/YYYY'
         excel (bool, optional): Use Excel function DAYS360 output. Defaults to True.
 
     Returns:
         int: Difference in days between the two dates
     """    
     # https://sqlsunday.com/2014/08/17/30-360-day-count-convention/ 
-    # Convert string of format MM-DD-YYYY to datetime object
-    start_time = datetime.datetime.strptime(start_time, "%m-%d-%Y")
-    end_time = datetime.datetime.strptime(end_time, "%m-%d-%Y")
+    # Convert string of format MM/DD/YYYY to datetime object
+    start_time = datetime.datetime.strptime(start_time, "%m/%d/%Y")
+    end_time = datetime.datetime.strptime(end_time, "%m/%d/%Y")
     start_day = start_time.day
     start_month = start_time.month
     end_day = end_time.day
@@ -71,7 +71,7 @@ def day_diff_us_nasd_30_360(start_time: str, end_time: str, excel: bool= True) -
         start_day = 30
         if not excel and end_day == calendar.monthrange(end_time.year, end_month)[1]:
         # Excel seems to forget that rule...
-        # Try ('02-29-2024', '02-29-2024') or ('02-29-2024', '02-28-2025') they should return 0 and 360 respectively but here it doesn't..
+        # Try ('02/29/2024', '02/29/2024') or ('02/29/2024', '02/28/2025') they should return 0 and 360 respectively but here it doesn't..
         # That condition here fixes it
             end_day = 30
     if start_day == 31:
@@ -87,12 +87,12 @@ def remove_days(time: str, days: int, date_convention: str= 'us_nasd_30_360') ->
     Remove days from a date given a calendar convention
 
     Args:
-        time (str): Date in format 'MM-DD-YYYY'
+        time (str): Date in format 'MM/DD/YYYY'
         days (int): Number of days to remove
         date_convention (str, optional): Calendar convention. Can be 'us_nasd_30_360' | 'not_retarded'. Defaults to 'us_nasd_30_360'.
 
     Returns:
-        str: Date in format 'MM-DD-YYYY'
+        str: Date in format 'MM/DD/YYYY'
     """    
     if date_convention == 'not_retarded':
         new_date = remove_days_normal(time, days)
@@ -107,15 +107,15 @@ def remove_days_normal(time: str, days: int) -> str:
     Remove days from a date using the normal calendar convention
 
     Args:
-        time (str): Date in format 'MM-DD-YYYY'
+        time (str): Date in format 'MM/DD/YYYY'
         days (int): Number of days to remove
 
     Returns:
-        str: Date in format 'MM-DD-YYYY'
+        str: Date in format 'MM/DD/YYYY'
     """    
-    dtime = datetime.datetime.strptime(time, "%m-%d-%Y")
+    dtime = datetime.datetime.strptime(time, "%m/%d/%Y")
     dtime = dtime - datetime.timedelta(days= days)
-    dtime = dtime.strftime("%m-%d-%Y")
+    dtime = dtime.strftime("%m/%d/%Y")
     return dtime
 
 def remove_days_us_nasd_30_360(time: str, days: int) -> str:
@@ -123,13 +123,13 @@ def remove_days_us_nasd_30_360(time: str, days: int) -> str:
     Remove days from a date using the US NASD 30/360 calendar convention
 
     Args:
-        time (str): Date in format 'MM-DD-YYYY'
+        time (str): Date in format 'MM/DD/YYYY'
         days (int): Number of days to remove
 
     Returns:
-        str: Date in format 'MM-DD-YYYY'
+        str: Date in format 'MM/DD/YYYY'
     """    
-    dtime = datetime.datetime.strptime(time, "%m-%d-%Y")
+    dtime = datetime.datetime.strptime(time, "%m/%d/%Y")
     num_years = days // 360
     num_months = (days % 360) // 30
     num_days = (days % 360) % 30
@@ -143,7 +143,7 @@ def remove_days_us_nasd_30_360(time: str, days: int) -> str:
         new_month += 12
         new_year -= 1
     dtime = datetime.datetime(new_year, new_month, new_day)
-    dtime = dtime.strftime("%m-%d-%Y")
+    dtime = dtime.strftime("%m/%d/%Y")
     return dtime
 
 def solve_newton(f: Callable, x0: float, tol: float=1e-10, max_iter: int=100):
