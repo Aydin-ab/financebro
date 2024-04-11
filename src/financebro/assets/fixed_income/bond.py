@@ -27,22 +27,34 @@ class Bond(FixedIncomeAsset):
                  cusip: str,
                  price_percent: float, ytm_percent: float,
                  annual_coupon_rate_percent: float,
-                 coupon_period_days: int,
                  maturity_date: str,
+                 coupon_period_days: int= None,
                  settlement_date: str= date.today().strftime("%m-%d-%Y"),
                  face_value: int= 1000,
                  date_convention: str= 'us_nasd_30_360'
                  ):
-
         super().__init__(price_percent, ytm_percent, 
-                         annual_coupon_rate_percent, coupon_period_days, 
+                         annual_coupon_rate_percent, 
                          maturity_date, settlement_date, 
                          face_value, date_convention)
         self.cusip = cusip
         self.isin = _bond.get_isin_from_cusip(cusip, 'US')
+
+        # Couponing
+        if coupon_period_days is None:
+            self.coupon_dates, self.coupon_period_days = self.infer_coupons_dates()
+        else:
+            self.coupon_period_days = coupon_period_days
+            self.coupon_dates = _bond.get_coupons_date(settlement_date, maturity_date, coupon_period_days, date_convention)
+        self.num_coupons_per_year = (360/self.coupon_period_days) if date_convention == 'us_nasd_30_360' else (365/self.coupon_period_days)
+        self.coupon_rate_percent = annual_coupon_rate_percent / self.num_coupons_per_year# in %
+        self.coupon_rate = self.coupon_rate_percent/100
+        self.coupon = self.coupon_rate * face_value
+        self.num_coupons = len(self.coupon_dates)
+
+        
         self.incomes, self.total_return = self.compute_return()
         self.apy = self.compute_apy()
-
 
     def compute_return(self) -> Tuple[dict, float]:
         """
@@ -158,6 +170,39 @@ class Bond(FixedIncomeAsset):
                                                         self.face_value)
         
         return price_percent
+
+    def infer_coupons_dates(self) -> Tuple[list, int]:
+        """
+        Infer the number of coupons of the bond from the price computation
+
+        Args:
+            ytm_percent (float): Yield to Maturity of the bond in percentage
+
+        Returns:
+            int: The number of coupons of the bond
+        """
+        trials = [15, 30, 60, 90, 120, 180, 360]
+        found = False
+        for trial in trials:
+            coupon_dates = _bond.get_coupons_date(self.settlement_date, self.maturity_date, trial, self.date_convention)
+            DSC = _math.day_diff(self.settlement_date, coupon_dates[0])
+            num_coupons_per_year = (360/trial)
+            price_percent = _bond.compute_price_excel(self.ytm_percent,
+                                                      self.annual_coupon_rate, 
+                                                      len(coupon_dates), 
+                                                      num_coupons_per_year, 
+                                                      self.face_value_percent, 
+                                                      DSC, 
+                                                      trial)
+            if round(price_percent, 3) == self.price_percent:
+                found = True
+                break
+        if found:
+            return coupon_dates, trial
+        else:
+            raise ValueError("Could not infer the number of coupons of the bond")
+
+
 
 # TODO To simplify for now, consider worst case which is CallableBond are called on first day of call date
 class CallableBond(Bond):

@@ -136,12 +136,12 @@ def remove_days_us_nasd_30_360(time: str, days: int) -> str:
     new_year = dtime.year - num_years
     new_month = dtime.month - num_months
     new_day = dtime.day - num_days
-    if new_month <= 0:
-        new_month += 12
-        new_year -= 1
     if new_day <= 0:
         new_month -= 1
         new_day += 30
+    if new_month <= 0:
+        new_month += 12
+        new_year -= 1
     dtime = datetime.datetime(new_year, new_month, new_day)
     dtime = dtime.strftime("%m-%d-%Y")
     return dtime

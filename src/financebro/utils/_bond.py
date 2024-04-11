@@ -1,3 +1,7 @@
+from datetime import datetime
+
+import financebro.utils._math as _math
+
 def get_isin_from_cusip(cusip_str, country_code):
     """
     >>> get_isin_from_cusip('037833100', 'US')
@@ -162,3 +166,11 @@ def compute_price_textbook(ytm_percent: float, annual_coupon: float, num_years: 
         price += cf / (1 + yld)**(1+i)
     return price
     
+
+def get_coupons_date(settlement_date: str, maturity_date: str, coupon_period_days:int, date_convention: str= 'us_nasd_30_360'):
+    iter_date = maturity_date
+    coupon_dates = []
+    while datetime.strptime(iter_date, "%m-%d-%Y") >= datetime.strptime(settlement_date, "%m-%d-%Y"):
+        coupon_dates.insert(0, iter_date)
+        iter_date = _math.remove_days(iter_date, coupon_period_days, date_convention)
+    return coupon_dates
