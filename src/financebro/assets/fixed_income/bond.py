@@ -72,7 +72,7 @@ class Bond(FixedIncomeAsset):
         interest_return = self.num_coupons * self.coupon
         redemption_return = self.face_value - self.price
         total_return = interest_return + redemption_return
-        assert total_return == sum(incomes.values())-self.price, f"Total return ({total_return}) and sum of incomes ({sum(incomes.values()) - self.price}) should be equal"
+        assert round(total_return, 3) == round(sum(incomes.values())-self.price, 3), f"Total return ({total_return}) and sum of incomes ({sum(incomes.values()) - self.price}) should be equal"
         return incomes, total_return
 
     def compute_apy(self) -> float:
@@ -89,7 +89,7 @@ class Bond(FixedIncomeAsset):
         apy = daily_yield_percent * self.YEAR_DAYS
         return apy
     
-    def compute_ytm(self, price_percent: float= None) -> float:
+    def compute_ytm_percent(self, price_percent: float= None) -> float:
         """
         Compute the Yield to Maturity of the bond in percentage
         From https://support.microsoft.com/en-gb/office/yield-function-f5f5ca43-c4bd-434f-8bd2-ed3c9727a4fe
@@ -103,14 +103,22 @@ class Bond(FixedIncomeAsset):
         # Excel YTM computation
         if price_percent is None:
             price_percent = self.price_percent
-        def f(x):
-            approx_price_percent = self.compute_price(x)
-            diff = approx_price_percent - price_percent
-            return diff
-        ytm: float = _math.solve_newton(f, 5)
-        return ytm
+        if self.num_coupons > 1:
+            def f(x):
+                approx_price_percent = self.compute_price(x)
+                diff = approx_price_percent - price_percent
+                return diff
+            ytm_percent: float = _math.solve_newton(f, 5)
+        elif self.num_coupons == 1:
+            ytm_percent = _bond.compute_ytm_excel_1_coupon(price_percent,
+                                                    self.annual_coupon_rate,
+                                                    self.num_coupons_per_year,
+                                                    self.face_value_percent,
+                                                    _math.day_diff(self.settlement_date, self.coupon_dates[0]),
+                                                    self.coupon_period_days)
+        return ytm_percent
     
-    def compute_approx_ytm(self, price_percent: float= None) -> float:
+    def compute_approx_ytm_percent(self, price_percent: float= None) -> float:
         """
         Compute the approximate Yield to Maturity of the bond in percentage
         From https://www.wallstreetprep.com/knowledge/yield-to-maturity-ytm/
@@ -183,6 +191,7 @@ class Bond(FixedIncomeAsset):
         """
         trials = [15, 30, 60, 90, 120, 180, 360]
         found = False
+        log_tried = []
         for trial in trials:
             coupon_dates = _bond.get_coupons_date(self.settlement_date, self.maturity_date, trial, self.date_convention)
             DSC = _math.day_diff(self.settlement_date, coupon_dates[0])
@@ -194,6 +203,7 @@ class Bond(FixedIncomeAsset):
                                                       self.face_value_percent, 
                                                       DSC, 
                                                       trial)
+            log_tried.append((trial, price_percent))
             if abs(round(price_percent, 3) - self.price_percent) < 0.01:
                 found = True
                 break
@@ -207,14 +217,14 @@ class Bond(FixedIncomeAsset):
 # TODO To simplify for now, consider worst case which is CallableBond are called on first day of call date
 class CallableBond(Bond):
     def __init__(self,
-                 cusip,
-                 price_percent, ytm_percent,
-                 annual_coupon_rate_percent,
-                 coupon_period_days,
-                 call_date, # Same as maturity date if not callable
+                 cusip: str,
+                 price_percent:float , ytm_percent: float,
+                 annual_coupon_rate_percent: float,
+                 call_date: str, # Same as maturity date if not callable
+                 coupon_period_days:int = None,
                  settlement_date=date.today().strftime("%m-%d-%Y"),
-                 face_value= 1000,
-                 date_convention= 'us_nasd_30_360'
+                 face_value: float= 1000,
+                 date_convention: str= 'us_nasd_30_360'
                  ):
         super().__init__(cusip, 
                          price_percent, ytm_percent, 

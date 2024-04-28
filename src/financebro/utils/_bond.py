@@ -123,7 +123,21 @@ def get_sedol_from_ticker(ticker_str):
     return get_sedol_from_cusip(get_cusip_from_ticker(ticker_str))
 
 
-def compute_price_excel(ytm_percent, rate, N, frequency, redemption, DSC, E):
+def compute_ytm_excel_1_coupon(pr, rate, frequency, redemption, DSC, E) -> float:
+    # Excel YTM computation when there are only 1 coupon period. WTF is this formula?!
+    # See their doc here for notation explanation
+    # https://support.microsoft.com/en-us/office/yield-function-f5f5ca43-c4bd-434f-8bd2-ed3c9727a4fe
+    A = E - DSC # number of days from beginning of settlement coupon period to settlement date.
+    T1 = pr/100 + (A/E)*(rate/frequency)
+    T2 = ( redemption/100 + (rate/frequency) )
+    T3 = (frequency*E)/DSC
+    ytm: float = ((T2-T1)/T1)*T3
+    ytm_percent = ytm*100
+    return ytm_percent
+
+
+
+def compute_price_excel(ytm_percent, rate, N, frequency, redemption, DSC, E) -> float:
     # Excel Price computation. WTF is this formula?!
     # See their doc here for notation explanation
     # https://support.microsoft.com/en-us/office/price-function-3ea9deac-8dfa-436f-a7c8-17ea02c21b0a
@@ -135,12 +149,12 @@ def compute_price_excel(ytm_percent, rate, N, frequency, redemption, DSC, E):
         for k in range(1, N+1):
             T2 += ( 100*rate/frequency ) / (1 + yld/frequency) ** (k-1+ DSC/E) # sum of the present value of the coupons
         T3 = 100*( rate/frequency ) * (A/E) # minus the interest owed to previous settler
-        price_percent = T1 + T2 - T3 # in %
+        price_percent: float = T1 + T2 - T3 # in %
     elif N == 1 : # Only 1 coupon so self.maturity_date == self.next_coupon_date
         # Technically DSR = DSC here but for the sake of readaiblity, I'll five 2 different definitions
         T1 = 100*(rate/frequency) + redemption
-        T2 = (yld/frequency)*(DSC/E)  + 1
-        T3 = 100*(rate/frequency)*A/E
+        T2 = (yld/frequency)*(DSC/E) + 1
+        T3 = 100*(rate/frequency)*(A/E)
         price_percent: float = (T1/T2) - T3
     return price_percent
 
@@ -164,7 +178,8 @@ def compute_price_textbook(ytm_percent: float, annual_coupon: float, num_years: 
     price = 0.
     for i, cf in enumerate(cash_flows):
         price += cf / (1 + yld)**(1+i)
-    return price
+    price_percent = price / face_value * 100
+    return price_percent
     
 
 def get_coupons_date(settlement_date: str, maturity_date: str, coupon_period_days:int, date_convention: str= 'us_nasd_30_360'):

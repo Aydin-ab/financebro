@@ -130,18 +130,22 @@ def remove_days_us_nasd_30_360(time: str, days: int) -> str:
         str: Date in format 'MM/DD/YYYY'
     """    
     dtime = datetime.datetime.strptime(time, "%m/%d/%Y")
+
     num_years = days // 360
     num_months = (days % 360) // 30
     num_days = (days % 360) % 30
     new_year = dtime.year - num_years
     new_month = dtime.month - num_months
-    new_day = dtime.day - num_days
+    # Edge case for February
+    new_day = 30 - num_days if dtime.day == calendar.monthrange(dtime.year, dtime.month)[1] else dtime.day - num_days
     if new_day <= 0:
         new_month -= 1
         new_day += 30
     if new_month <= 0:
         new_month += 12
         new_year -= 1
+    # Edge case for February
+    new_day = calendar.monthrange(new_year, new_month)[1] if new_month == 2 and new_day in [29, 30] else new_day
     dtime = datetime.datetime(new_year, new_month, new_day)
     dtime = dtime.strftime("%m/%d/%Y")
     return dtime
